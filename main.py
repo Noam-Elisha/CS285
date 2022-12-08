@@ -21,8 +21,7 @@ import torch
 
 os.makedirs('./model_weights', exist_ok=True)
 
-env = gym.make("Hopper-v2")
-
+env = gym.make("BipedalWalker-v3")
 action_dim = env.action_space.shape[0]
 state_dim = env.observation_space.shape[0]
 
@@ -88,7 +87,7 @@ discriminator_score = 0
 if agent_args.on_policy == True:
     state_lst = []
     state_ = (env.reset())
-    state = np.clip((state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
+    state = np.expand_dims(np.clip((state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5), 0)
     for n_epi in range(args.epochs):
         for t in range(agent_args.traj_length):
             if args.render:    
@@ -96,8 +95,8 @@ if agent_args.on_policy == True:
             state_lst.append(state_)
             
             action, log_prob = agent.get_action(torch.from_numpy(state).float().unsqueeze(0).to(device))
-            
-            next_state_, r, done, info = env.step(action.cpu().numpy())
+        
+            next_state_, r, done, info = env.step(action.squeeze().cpu().numpy())
             next_state = np.clip((next_state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
             if discriminator_args.is_airl:
                 reward = discriminator.get_reward(\
@@ -110,7 +109,7 @@ if agent_args.on_policy == True:
                 reward = discriminator.get_reward(torch.tensor(state).unsqueeze(0).float().to(device),action).item()
 
             transition = make_transition(state,\
-                                         action,\
+                                         action.cpu(),\
                                          np.array([reward/10.0]),\
                                          next_state,\
                                          np.array([done]),\
@@ -129,7 +128,7 @@ if agent_args.on_policy == True:
                 score = 0
                 discriminator_score = 0
             else:
-                state = np.concatenate((state, next_state))
+                state = np.concatenate((state, np.expand_dims(next_state, 0)))
                 state_ = next_state_
         agent.train(discriminator, discriminator_args.batch_size, state_rms, n_epi)
         state_rms.update(np.vstack(state))
@@ -143,7 +142,7 @@ else: #off-policy
     for n_epi in range(args.epochs):
         score = 0.0
         discriminator_score = 0.0
-        state = env.reset()
+        state = np.expand_dims(env.reset(), 0)
         done = False
         while not done:
             if args.render:    
@@ -169,7 +168,7 @@ else: #off-policy
                                         )
             agent.put_data(transition) 
 
-            state = np.concatenate((state, next_state))
+            state = np.concatenate((state, np.expand_dims(next_state, 0)))
 
             score += r
             discriminator_score += reward
