@@ -87,13 +87,13 @@ discriminator_score = 0
 if agent_args.on_policy == True:
     state_lst = []
     state_ = (env.reset())
-    state = np.expand_dims(np.clip((state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5), 0)
+    state = np.clip((state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
+    timeline = np.expand_dims(state, 0)
     for n_epi in range(args.epochs):
         for t in range(agent_args.traj_length):
             if args.render:    
                 env.render()
             state_lst.append(state_)
-            
             action, log_prob = agent.get_action(torch.from_numpy(state).float().unsqueeze(0).to(device))
         
             next_state_, r, done, info = env.step(action.squeeze().cpu().numpy())
@@ -101,12 +101,12 @@ if agent_args.on_policy == True:
             if discriminator_args.is_airl:
                 reward = discriminator.get_reward(\
                                         log_prob,\
-                                        torch.tensor(state).unsqueeze(0).float().to(device),action,\
+                                        torch.tensor(timeline).unsqueeze(0).float().to(device),action,\
                                         torch.tensor(next_state).unsqueeze(0).float().to(device),\
                                                               torch.tensor(done).view(1,1)\
                                                  ).item()
             else:
-                reward = discriminator.get_reward(torch.tensor(state).unsqueeze(0).float().to(device),action).item()
+                reward = discriminator.get_reward(torch.tensor(timeline).unsqueeze(0).float().to(device),action).item()
 
             transition = make_transition(state,\
                                          action.cpu(),\
@@ -128,7 +128,8 @@ if agent_args.on_policy == True:
                 score = 0
                 discriminator_score = 0
             else:
-                state = np.concatenate((state, np.expand_dims(next_state, 0)))
+                state = next_state
+                timeline = np.concatenate((timeline, np.expand_dims(next_state, 0)))
                 state_ = next_state_
         agent.train(discriminator, discriminator_args.batch_size, state_rms, n_epi)
         state_rms.update(np.vstack(state))
@@ -142,7 +143,8 @@ else: #off-policy
     for n_epi in range(args.epochs):
         score = 0.0
         discriminator_score = 0.0
-        state = np.expand_dims(env.reset(), 0)
+        state = env.reset()
+        timeline = np.expand_dims(state, 0)
         done = False
         while not done:
             if args.render:    
@@ -153,12 +155,12 @@ else: #off-policy
             if discriminator_args.is_airl:
                 reward = discriminator.get_reward(\
                             log_prob,
-                            torch.tensor(state).unsqueeze(0).float().to(device),action_,\
+                            torch.tensor(timeline).unsqueeze(0).float().to(device),action_,\
                             torch.tensor(next_state).unsqueeze(0).float().to(device),\
                                                   torch.tensor(done).unsqueeze(0)\
                                                  ).item()
             else:
-                reward = discriminator.get_reward(torch.tensor(state).unsqueeze(0).float().to(device),action_).item()
+                reward = discriminator.get_reward(torch.tensor(timeline).unsqueeze(0).float().to(device),action_).item()
 
             transition = make_transition(state,\
                                          action,\
@@ -168,7 +170,8 @@ else: #off-policy
                                         )
             agent.put_data(transition) 
 
-            state = np.concatenate((state, np.expand_dims(next_state, 0)))
+            timeline = np.concatenate((timeline, np.expand_dims(next_state, 0)))
+            state = next_state
 
             score += r
             discriminator_score += reward
