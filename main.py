@@ -7,7 +7,7 @@ from discriminators.vail     import VAIL
 from discriminators.airl     import AIRL
 from discriminators.vairl    import VAIRL
 from discriminators.eairl    import EAIRL
-from discriminators.sqil    import SQIL
+from discriminators.sqil     import SQIL
 from utils.utils             import RunningMeanStd, Dict, make_transition
 
 from configparser            import ConfigParser
@@ -129,17 +129,17 @@ if agent_args.on_policy == True:
                 score = 0
                 discriminator_score = 0
             else:
-                state = next_state
+                state = np.concatenate((state, next_state))
                 state_ = next_state_
         agent.train(discriminator, discriminator_args.batch_size, state_rms, n_epi)
-        state_rms.update(np.vstack(state_lst))
+        state_rms.update(np.vstack(state))
         state_lst = []
         if n_epi%args.print_interval==0 and n_epi!=0:
             print("# of episode :{}, avg score : {:.1f}".format(n_epi, sum(score_lst)/len(score_lst)))
             score_lst = []
         if (n_epi % args.save_interval == 0 )& (n_epi != 0):
             torch.save(agent.state_dict(), './model_weights/model_'+str(n_epi))
-else : #off-policy
+else: #off-policy
     for n_epi in range(args.epochs):
         score = 0.0
         discriminator_score = 0.0
@@ -169,7 +169,7 @@ else : #off-policy
                                         )
             agent.put_data(transition) 
 
-            state = next_state
+            state = np.concatenate((state, next_state))
 
             score += r
             discriminator_score += reward
