@@ -21,7 +21,7 @@ import torch
 
 os.makedirs('./model_weights', exist_ok=True)
 
-env = gym.make("BipedalWalker-v3")
+env = gym.make("Hopper-v2")
 action_dim = env.action_space.shape[0]
 state_dim = env.observation_space.shape[0]
 
@@ -88,14 +88,21 @@ if agent_args.on_policy == True:
     state_lst = []
     state_ = (env.reset())
     state = np.clip((state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
-    timeline = np.expand_dims(state, 0)
+    # timeline = np.expand_dims(state, 0)
     for n_epi in range(args.epochs):
+        timeline = torch.zeros(0)
+        actions = torch.zeros(0)
+        timesteps = torch.zeros(0)
         for t in range(agent_args.traj_length):
+            timesteps = torch.cat((timesteps, torch.tensor([[t]])), -1)
+            timeline = torch.cat((timeline, torch.tensor(state).unsqueeze(0)))
+            
             if args.render:    
                 env.render()
             state_lst.append(state_)
             action, log_prob = agent.get_action(torch.from_numpy(state).float().unsqueeze(0).to(device))
         
+            actions = torch.cat((actions, action.unsqueeze(0)), 1)
             next_state_, r, done, info = env.step(action.squeeze().cpu().numpy())
             next_state = np.clip((next_state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
             if discriminator_args.is_airl:
@@ -106,7 +113,7 @@ if agent_args.on_policy == True:
                                                               torch.tensor(done).view(1,1)\
                                                  ).item()
             else:
-                reward = discriminator.get_reward(torch.tensor(timeline).unsqueeze(0).float().to(device),action).item()
+                reward = discriminator.get_reward(torch.tensor(timeline).unsqueeze(0).float().to(device),actions)[:,-1]
 
             transition = make_transition(state,\
                                          action.cpu(),\
@@ -129,7 +136,7 @@ if agent_args.on_policy == True:
                 discriminator_score = 0
             else:
                 state = next_state
-                timeline = np.concatenate((timeline, np.expand_dims(next_state, 0)))
+                # timeline = np.concatenate((timeline, np.expand_dims(next_state, 0)))
                 state_ = next_state_
         agent.train(discriminator, discriminator_args.batch_size, state_rms, n_epi)
         state_rms.update(np.vstack(state))

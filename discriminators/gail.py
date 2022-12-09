@@ -1,5 +1,6 @@
 from discriminators.base import Discriminator
 from networks.base import Network
+from networks.discriminator_transformer import Transformer_Network
 import torch
 import torch.nn as nn
 
@@ -9,13 +10,20 @@ class GAIL(Discriminator):
         self.writer = writer
         self.device = device
         self.args = args
-        self.network = Network(args.layer_num, state_dim+action_dim, 1, args.hidden_dim, args.activation_function,args.last_activation)
+        # self.network = Network(args.layer_num, state_dim+action_dim, 1, args.hidden_dim, args.activation_function,args.last_activation)
+        self.network = Transformer_Network( state_dim +
+                                           action_dim, args.layer_num,args.hidden_dim)
         self.criterion = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=args.lr)
 
     def forward(self, x):
+        x= x.unsqueeze(0)
+        
         prob = self.network.forward(x)
-        return prob
+        
+        return prob.squeeze(0)
+
+
     def get_reward(self,state,action):
         x = torch.cat((state,action),-1)
         x = self.network.forward(x)
