@@ -102,7 +102,7 @@ if agent_args.on_policy == True:
             state_lst.append(state_)
             action, log_prob = agent.get_action(torch.from_numpy(state).float().unsqueeze(0).to(device))
         
-            actions = torch.cat((actions, action.unsqueeze(0)), 1)
+            actions = torch.cat((actions.to(device=device), action.unsqueeze(0).to(device=device)), 1)
             next_state_, r, done, info = env.step(action.squeeze().cpu().numpy())
             next_state = np.clip((next_state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
             if discriminator_args.is_airl:
@@ -117,7 +117,7 @@ if agent_args.on_policy == True:
 
             transition = make_transition(state,\
                                          action.cpu(),\
-                                         np.array([reward/10.0]),\
+                                         np.array([reward.cpu()/10.0]),\
                                          next_state,\
                                          np.array([done]),\
                                          log_prob.detach().cpu().numpy()\
