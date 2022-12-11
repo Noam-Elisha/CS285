@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from networks.utils_network import Block
-
-
+from networks.discriminator_transformer import Transformer_Network
 
 
 
@@ -37,15 +35,15 @@ class VDB_transformer(nn.Module):
         mu = self.mu(x)
         return mu
     
+
+
     
-    
-class G_transformer(Block):
+class G_transformer(Transformer_Network):
     def __init__(self,state_only, layer_num, input_dim, output_dim, hidden_dim,activation_function = torch.relu,last_activation = None , drop_p=0.8):
-        print('debugging',input_dim )
         if state_only :
-            super(G_transformer, self).__init__(layer_num,input_dim, 1, hidden_dim, activation_function ,last_activation)
+            super(G_transformer, self).__init__(input_dim,layer_num, hidden_dim )
         else:
-            super(G_transformer, self).__init__(layer_num,input_dim+output_dim, 1, hidden_dim, activation_function ,last_activation)
+            super(G_transformer, self).__init__(input_dim+output_dim, layer_num, hidden_dim)
         self.state_only = state_only
     def forward(self, state, action):
         if self.state_only:
@@ -55,9 +53,9 @@ class G_transformer(Block):
         return self._forward(x)
     
     
-class H_transformer(Block):
+class H_transformer(Transformer_Network):
     def __init__(self, layer_num, input_dim, output_dim, hidden_dim,activation_function = torch.relu,last_activation = None , drop_p=0.8):
-        super(H_transformer, self).__init__(layer_num,input_dim, 1, hidden_dim, activation_function ,last_activation)
+        super(H_transformer, self).__init__(input_dim,layer_num, hidden_dim)
         
     def forward(self, x):
         return self._forward(x)

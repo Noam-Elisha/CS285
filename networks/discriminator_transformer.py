@@ -5,7 +5,7 @@ from networks.utils_network import Block
 
             
 class Transformer_Network(nn.Module):
-    def __init__(self, input_dim, n_blocks, h_dim, context_len=10, 
+    def __init__(self, input_dim, n_blocks, h_dim,output_dim = 1, context_len=10, 
                  n_heads=1, drop_p=0.5, max_timestep=4096):
         super().__init__()
 

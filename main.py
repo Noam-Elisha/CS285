@@ -36,6 +36,7 @@ parser.add_argument("--discriminator", type=str, default = 'gail', help = 'discr
 parser.add_argument("--save_interval", type=int, default = 100, help = 'save interval')
 parser.add_argument("--print_interval", type=int, default = 1, help = 'print interval')
 parser.add_argument('--tensorboard', type=bool, default=True, help='use_tensorboard, (default: True)')
+parser.add_argument('--transformer', type=bool, default=False, help='use transformer architechture')
 
 args = parser.parse_args()
 parser = ConfigParser()
@@ -48,22 +49,22 @@ discriminator_args = Dict(parser,args.discriminator)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if args.tensorboard:
     from torch.utils.tensorboard import SummaryWriter
-    writer = SummaryWriter()
+    writer = SummaryWriter(log_dir = f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}')
 else:
     writer = None
 
 if args.discriminator == 'airl':
-    discriminator = AIRL(writer, device, state_dim, action_dim, discriminator_args)
+    discriminator = AIRL(writer, device, state_dim, action_dim, discriminator_args, args.transformer)
 elif args.discriminator == 'vairl':
-    discriminator = VAIRL(writer, device, state_dim, action_dim, discriminator_args)
+    discriminator = VAIRL(writer, device, state_dim, action_dim, discriminator_args, args.transformer)
 elif args.discriminator == 'gail':
-    discriminator = GAIL(writer, device, state_dim, action_dim, discriminator_args)
+    discriminator = GAIL(writer, device, state_dim, action_dim, discriminator_args, args.transformer)
 elif args.discriminator == 'vail':
-    discriminator = VAIL(writer,device,state_dim, action_dim, discriminator_args)
+    discriminator = VAIL(writer,device,state_dim, action_dim, discriminator_args, args.transformer)
 elif args.discriminator == 'eairl':
-    discriminator = EAIRL(writer, device, state_dim, action_dim, discriminator_args)
+    discriminator = EAIRL(writer, device, state_dim, action_dim, discriminator_args, args.transformer)
 elif args.discriminator == 'sqil':
-    discriminator = SQIL(writer, device, state_dim, action_dim, discriminator_args)
+    discriminator = SQIL(writer, device, state_dim, action_dim, discriminator_args, args.transformer)
 else:
     raise NotImplementedError
     
@@ -125,7 +126,7 @@ if agent_args.on_policy == True:
             agent.put_data(transition) 
             score += r
             discriminator_score += reward
-            if done:
+            if done or (t==agent_args.traj_length):
                 state_ = (env.reset())
                 state = np.clip((state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
                 score_lst.append(score)

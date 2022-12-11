@@ -1,17 +1,21 @@
 from discriminators.base import Discriminator
 from networks.discriminator_network import VDB
+
+from networks.Transformer_network import VDB_transformer
 import torch
 import torch.nn as nn
 
 class VAIL(Discriminator):
-    def __init__(self, writer, device, state_dim, action_dim, args):
+    def __init__(self, writer, device, state_dim, action_dim, args, transformer):
         super(VAIL, self).__init__()
         self.writer = writer
         self.device = device
         self.args = args
         self.beta = self.args.beta
-        
-        self.vdb = VDB(state_dim, action_dim, args.hidden_dim, args.z_dim)
+        if transformer:
+            self.vdb = VDB_transformer(state_dim, action_dim, args.hidden_dim, 2, args.z_dim)
+        else:
+            self.vdb = VDB(state_dim, action_dim, args.hidden_dim, args.z_dim)
         self.fc3 = nn.Linear(args.z_dim,1)
         
         self.network_init()

@@ -5,14 +5,16 @@ import torch
 import torch.nn as nn
 
 class GAIL(Discriminator):
-    def __init__(self, writer, device, state_dim, action_dim, args):
+    def __init__(self, writer, device, state_dim, action_dim, args, transformer):
         super(GAIL, self).__init__()
         self.writer = writer
         self.device = device
         self.args = args
-        # self.network = Network(args.layer_num, state_dim+action_dim, 1, args.hidden_dim, args.activation_function,args.last_activation)
-        self.network = Transformer_Network( state_dim +
+        if transformer:
+            self.network = Transformer_Network( state_dim +
                                            action_dim, args.layer_num,args.hidden_dim)
+        else:
+            self.network = Network(args.layer_num, state_dim+action_dim, 1, args.hidden_dim, args.activation_function,args.last_activation)
         self.criterion = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=args.lr)
 

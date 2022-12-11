@@ -1,17 +1,27 @@
 from discriminators.base import Discriminator
 from networks.discriminator_network import G,H
+
+from networks.Transformer_network import G_transformer, H_transformer
 import torch
 import torch.nn as nn
 
 class AIRL(Discriminator):
-    def __init__(self, writer, device, state_dim, action_dim, args):
+    def __init__(self, writer, device, state_dim, action_dim, args, transformer ):
         super(AIRL, self).__init__()
         self.writer = writer
         self.device = device
         self.args = args
         
-        self.g = G(self.args.state_only, self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function, self.args.last_activation)
+        if transformer:
+        
+            self.g = G_transformer(self.args.state_only, self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function, self.args.last_activation)
+            self.h = H_transformer(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function, self.args.last_activation)
+            
+        else:
+            self.g = G(self.args.state_only, self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function, self.args.last_activation)
         self.h = H(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function, self.args.last_activation)
+       
+            
         self.criterion = nn.BCELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.args.lr)
     def get_f(self,state,action,next_state,done_mask):
