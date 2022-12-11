@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from networks.utils_network import Block
+from networks.utils_network import Block, PositionalEncoding
 
             
 class Transformer_Network(nn.Module):
@@ -11,7 +11,13 @@ class Transformer_Network(nn.Module):
 
         self.input_dim = input_dim
         self.h_dim = h_dim
-
+        
+        
+        
+        # continuous actions
+        self.encoder_input_layer = torch.nn.Linear(input_dim, h_dim)
+        
+        self.encod = PositionalEncoding(h_dim)
         ### transformer blocks
         input_seq_len = 3 * context_len
         blocks = [Block(h_dim, input_seq_len, n_heads, drop_p) for _ in range(n_blocks)]
@@ -21,8 +27,6 @@ class Transformer_Network(nn.Module):
         self.embed_ln = nn.LayerNorm(h_dim)
 
 
-        # continuous actions
-        self.embed = torch.nn.Linear(input_dim, h_dim)
         # use_action_tanh = True # True for continuous actions
         
         ### prediction heads
@@ -32,12 +36,17 @@ class Transformer_Network(nn.Module):
 
     def forward(self,x):
         # time embeddings are treated similar to positional embeddings
-        h = self.embed(x)
-
-        h = self.embed_ln(h)
+        
+        src = self.encoder_input_layer(x) 
+        
+        # Pass through the positional encoding layer
+        h = self.positional_encoding_layer(src)
+        
         
         # transformer and prediction
         h = self.transformer(h)
+        
+        h = self.embed_ln(h)
         # get predictions
         return_preds = nn.Sigmoid()(self.predict_rtg(h)) 
         return return_preds
