@@ -152,23 +152,34 @@ else: #off-policy
         score = 0.0
         discriminator_score = 0.0
         state = env.reset()
-        timeline = np.expand_dims(state, 0)
+        # timeline = np.expand_dims(state, 0)
         done = False
+        timeline = torch.zeros(0)
+        actions = torch.zeros(0)
+        # timesteps = torch.zeros(0)
         while not done:
             if args.render:    
                 env.render()
+            
+            # timesteps = torch.cat((timesteps, torch.tensor([[t]])), -1)
+            timeline = torch.cat((timeline, torch.tensor(state).unsqueeze(0)))
             action_, log_prob = agent.get_action(torch.from_numpy(state).float().to(device))
+            
+            actions = torch.cat((actions.to(device=device), action_.unsqueeze(0).to(device=device)), 1)
+
+
             action = action_.cpu().detach().numpy()
-            next_state, r, done, info = env.step(action)
+            # print(action.shape, env.action_space.sample().shape)
+            next_state, r, done, info = env.step(action[0])
             if discriminator_args.is_airl:
                 reward = discriminator.get_reward(\
                             log_prob,
-                            torch.tensor(timeline).unsqueeze(0).float().to(device),action_,\
+                            torch.tensor(timeline).unsqueeze(0).float().to(device),actions,\
                             torch.tensor(next_state).unsqueeze(0).float().to(device),\
                                                   torch.tensor(done).unsqueeze(0)\
-                                                 ).item()
+                                                 )[:,-1]
             else:
-                reward = discriminator.get_reward(torch.tensor(timeline).unsqueeze(0).float().to(device),action_).item()
+                reward = discriminator.get_reward(torch.tensor(timeline).unsqueeze(0).float().to(device),actions)[:,-1]
 
             transition = make_transition(state,\
                                          action,\
@@ -178,7 +189,7 @@ else: #off-policy
                                         )
             agent.put_data(transition) 
 
-            timeline = np.concatenate((timeline, np.expand_dims(next_state, 0)))
+            # timeline = np.concatenate((timeline, np.expand_dims(next_state, 0)))
             state = next_state
 
             score += r
