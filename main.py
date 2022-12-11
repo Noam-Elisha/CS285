@@ -183,7 +183,7 @@ else: #off-policy
 
             transition = make_transition(state,\
                                          action,\
-                                         np.array([reward/10.0]),\
+                                         np.array([reward.cpu()/10.0]),\
                                          next_state,\
                                          np.array([done])\
                                         )
