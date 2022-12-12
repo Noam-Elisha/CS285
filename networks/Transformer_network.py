@@ -17,9 +17,9 @@ class VDB_transformer(nn.Module):
         
         encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=4)
         self.attention = nn.TransformerEncoder(encoder_layer, num_layers=layer_num)
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc1 = nn.Linear(hidden_dim, hidden_dim*2)
         # self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.mu = nn.Linear(hidden_dim, z_dim) 
+        self.mu = nn.Linear(hidden_dim*2, z_dim) 
         self.sigma = nn.Linear(hidden_dim, z_dim) 
         # self.ln1 = nn.LayerNorm(input_dim)
 
