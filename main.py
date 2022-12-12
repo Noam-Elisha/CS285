@@ -16,7 +16,7 @@ from argparse                import ArgumentParser
 import os
 import gym
 import numpy as np
-
+import time 
 import torch
 
 os.makedirs('./model_weights', exist_ok=True)
@@ -26,7 +26,7 @@ action_dim = env.action_space.shape[0]
 state_dim = env.observation_space.shape[0]
 
 parser = ArgumentParser('parameters')
-
+timestr = time.strftime("%Y%m%d-%H%M%S")
 
 parser.add_argument('--test', type=bool, default=False, help="True if test, False if train (default: False)")
 parser.add_argument('--render', type=bool, default=False, help="(default: False)")
@@ -49,7 +49,7 @@ discriminator_args = Dict(parser,args.discriminator)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if args.tensorboard:
     from torch.utils.tensorboard import SummaryWriter
-    writer = SummaryWriter(log_dir = f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}')
+    writer = SummaryWriter(log_dir = f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_{timestr}')
 else:
     writer = None
 
@@ -79,12 +79,16 @@ if device == 'cuda':
     agent = agent.cuda()
     discriminator = discriminator.cuda()
     
+import shutil, glob
+
+shutil.copyfile('config.ini', f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_{timestr}/config.ini')
 state_rms = RunningMeanStd(state_dim)
 
 score_lst = []
 discriminator_score_lst = []
 score = 0.0
 discriminator_score = 0
+stoppp
 if agent_args.on_policy == True:
     state_lst = []
     state_ = (env.reset())
@@ -211,3 +215,4 @@ else: #off-policy
             score_lst = []
         if n_epi%args.save_interval==0 and n_epi!=0:
             torch.save(agent.state_dict(),'./model_weights/agent_'+str(n_epi))
+            
