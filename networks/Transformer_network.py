@@ -59,3 +59,16 @@ class H_transformer(Transformer_Network):
         
     def forward(self, x):
         return self._forward(x)
+    
+    
+class Reward_transformer(Transformer_Network):
+    def __init__(self,layer_num, input_dim, output_dim, hidden_dim):
+        super(Reward_transformer,self).__init__(input_dim+output_dim,layer_num,hidden_dim, 1)
+        '''
+        self.reward
+        input : s,a
+        output : scalar
+        '''
+    def forward(self,state,action):
+        x = torch.cat((state,action),-1)
+        return self._forward(x)

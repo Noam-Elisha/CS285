@@ -94,6 +94,7 @@ if agent_args.on_policy == True:
         timeline = torch.zeros(0)
         actions = torch.zeros(0)
         timesteps = torch.zeros(0)
+        next_states = torch.zeros(0)
         for t in range(agent_args.traj_length):
             timesteps = torch.cat((timesteps, torch.tensor([[t]])), -1)
             timeline = torch.cat((timeline, torch.tensor(state).unsqueeze(0)))
@@ -105,14 +106,18 @@ if agent_args.on_policy == True:
         
             actions = torch.cat((actions.to(device=device), action.unsqueeze(0).to(device=device)), 1)
             next_state_, r, done, info = env.step(action.squeeze().cpu().numpy())
+            
             next_state = np.clip((next_state_ - state_rms.mean) / (state_rms.var ** 0.5 + 1e-8), -5, 5)
+            
+            next_states = torch.cat((next_states, torch.tensor(next_state).unsqueeze(0)))
             if discriminator_args.is_airl:
                 reward = discriminator.get_reward(\
                                         log_prob,\
-                                        torch.tensor(timeline).unsqueeze(0).float().to(device),action,\
-                                        torch.tensor(next_state).unsqueeze(0).float().to(device),\
+                                        torch.tensor(timeline).unsqueeze(0).float().to(device),actions,\
+                                        torch.tensor(next_states).unsqueeze(0).float().to(device),\
                                                               torch.tensor(done).view(1,1)\
-                                                 ).item()
+                                                 )[:,-1]
+                # print(reward.size())
             else:
                 reward = discriminator.get_reward(torch.tensor(timeline).unsqueeze(0).float().to(device),actions)[:,-1]
 

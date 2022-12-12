@@ -17,7 +17,7 @@ class Transformer_Network(nn.Module):
         # continuous actions
         self.encoder_input_layer = torch.nn.Linear(input_dim, h_dim)
         
-        self.encod = PositionalEncoding(h_dim)
+        self.pos_encod = PositionalEncoding(h_dim)
         ### transformer blocks
         input_seq_len = 3 * context_len
         blocks = [Block(h_dim, input_seq_len, n_heads, drop_p) for _ in range(n_blocks)]
@@ -34,13 +34,13 @@ class Transformer_Network(nn.Module):
 
 
 
-    def forward(self,x):
+    def _forward(self,x):
         # time embeddings are treated similar to positional embeddings
         
         src = self.encoder_input_layer(x) 
         
         # Pass through the positional encoding layer
-        h = self.positional_encoding_layer(src)
+        h = self.pos_encod(src)
         
         
         # transformer and prediction
@@ -50,6 +50,9 @@ class Transformer_Network(nn.Module):
         # get predictions
         return_preds = nn.Sigmoid()(self.predict_rtg(h)) 
         return return_preds
+    
+    def forward(self, x):
+        return self._forward(x)
 
 
     

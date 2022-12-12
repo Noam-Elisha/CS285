@@ -1,12 +1,13 @@
 from discriminators.base import Discriminator
 from networks.discriminator_network import Q_phi, Empowerment, Reward
+from networks.Transformer_network import Reward_transformer
 
 import torch
 import torch.nn as nn
 
     
 class EAIRL(Discriminator):
-    def __init__(self,writer, device, state_dim, action_dim, args):
+    def __init__(self,writer, device, state_dim, action_dim, args, transformer):
         super(EAIRL, self).__init__()
         self.writer = writer
         self.device = device
@@ -14,7 +15,13 @@ class EAIRL(Discriminator):
         self.q_phi = Q_phi(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function,self.args.last_activation,self.args.trainable_std)
         self.empowerment = Empowerment(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function ,self.args.last_activation)
         self.empowerment_t = Empowerment(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function ,self.args.last_activation)
-        self.reward = Reward(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function , self.args.last_activation)
+        if transformer:
+            self.reward = Reward_transformer(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim )
+
+
+        else:
+            self.reward = Reward(self.args.layer_num, state_dim, action_dim, self.args.hidden_dim, self.args.activation_function , self.args.last_activation)
+            
         self.empowerment_t.load_state_dict(self.empowerment.state_dict())
         self.criterion = nn.BCELoss()
         self.q_phi_optimizer = torch.optim.Adam(self.q_phi.parameters(), lr=self.args.lr)
@@ -29,6 +36,7 @@ class EAIRL(Discriminator):
         return exp_f / (exp_f+torch.exp(log_prob)) 
     
     def get_f(self,state,next_state,action,done_mask):
+        print(self.reward(state,action).size() )
         return self.reward(state,action) +\
     done_mask * (self.args.gamma * self.empowerment_t(next_state).detach() - self.empowerment(state).detach())
 
@@ -66,7 +74,10 @@ class EAIRL(Discriminator):
         loss_i.backward()
         self.empowerment_optimizer.step()
         
+        print(expert_log_prob.size(),expert_s.size(),expert_a.size(),expert_next_s.size(),expert_done_mask.size())
+        
         expert_preds = self.forward(expert_log_prob,expert_s,expert_a,expert_next_s,expert_done_mask)
+        print(expert_preds.size(),torch.ones(expert_preds.shape[0],1).size())
         expert_loss = self.criterion(expert_preds,torch.ones(expert_preds.shape[0],1).to(self.device)) 
         
         agent_preds = self.forward(agent_log_prob,agent_s,agent_a,agent_next_s,agent_done_mask)
