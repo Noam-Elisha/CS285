@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from networks.discriminator_transformer import Transformer_Network
+from networks.utils_network import Block, PositionalEncoding
 
 
 
@@ -10,19 +11,27 @@ class VDB_transformer(nn.Module):
     def __init__(self, state_dim, action_dim, hidden_dim, layer_num, z_dim):
         super(VDB_transformer, self).__init__()
         input_dim = state_dim + action_dim
+        
+        self.encoder_input_layer = torch.nn.Linear(input_dim, h_dim)
+        self.pos_encod = PositionalEncoding(h_dim)
+        
         encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=input_dim//2)
         self.attention = nn.TransformerEncoder(encoder_layer, num_layers=layer_num)
         self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        # self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.mu = nn.Linear(hidden_dim, z_dim) 
         self.sigma = nn.Linear(hidden_dim, z_dim) 
-        self.ln1 = nn.LayerNorm(input_dim)
+        # self.ln1 = nn.LayerNorm(input_dim)
 
     def get_z(self,x):
-        x = x + self.attention(x) # residual
-        x = self.ln1(x)
-        x = nn.GELU()(self.fc1(x))
-        x = torch.relu(self.fc2(x))
+        x_encoded = nn.relu(self.encoder_input_layer(x)) 
+        
+        # Pass through the positional encoding layer
+        x = self.pos_encod(x_encoded)
+        x = self.attention(x)
+        # x = self.ln1(x)
+        x = torch.relu(self.fc1(x))
+        # x = torch.relu(self.fc2(x))
         mu = self.mu(x)
         sigma = self.sigma(x)
         std = torch.exp(sigma/2)
