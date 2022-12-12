@@ -52,7 +52,7 @@ discriminator_args['lr']=args.lr
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if args.tensorboard:
     from torch.utils.tensorboard import SummaryWriter
-    writer = SummaryWriter(log_dir = f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_{timestr}')
+    writer = SummaryWriter(log_dir = f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_lr{discriminator_args.lr}_{timestr}/config.ini')
 else:
     writer = None
 
@@ -84,7 +84,7 @@ if device == 'cuda':
     
 import shutil, glob
 
-shutil.copyfile('config.ini', f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_lr{discriminator_args['lr']}_{timestr}/config.ini')
+shutil.copyfile('config.ini', f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_lr{discriminator_args.lr}_{timestr}/config.ini')
 state_rms = RunningMeanStd(state_dim)
 
 score_lst = []
