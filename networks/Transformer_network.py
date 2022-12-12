@@ -12,10 +12,10 @@ class VDB_transformer(nn.Module):
         super(VDB_transformer, self).__init__()
         input_dim = state_dim + action_dim
         
-        self.encoder_input_layer = torch.nn.Linear(input_dim, h_dim)
-        self.pos_encod = PositionalEncoding(h_dim)
+        self.encoder_input_layer = torch.nn.Linear(input_dim, hidden_dim)
+        self.pos_encod = PositionalEncoding(hidden_dim)
         
-        encoder_layer = nn.TransformerEncoderLayer(d_model=input_dim, nhead=input_dim//2)
+        encoder_layer = nn.TransformerEncoderLayer(d_model=hidden_dim, nhead=4)
         self.attention = nn.TransformerEncoder(encoder_layer, num_layers=layer_num)
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         # self.fc2 = nn.Linear(hidden_dim, hidden_dim)
@@ -39,8 +39,15 @@ class VDB_transformer(nn.Module):
         return  mu + std * eps,mu,sigma
     
     def get_mean(self,x):
+        
+        x_encoded = nn.relu(self.encoder_input_layer(x)) 
+        
+        # Pass through the positional encoding layer
+        x = self.pos_encod(x_encoded)
+        x = self.attention(x)
+        # x = self.ln1(x)
         x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
+        # x = torch.relu(self.fc2(x))
         mu = self.mu(x)
         return mu
     
