@@ -38,6 +38,8 @@ parser.add_argument("--print_interval", type=int, default = 1, help = 'print int
 parser.add_argument('--tensorboard', type=bool, default=True, help='use_tensorboard, (default: True)')
 parser.add_argument('--transformer', type=bool, default=False, help='use transformer architechture')
 
+parser.add_argument('--lr', type=float, default=0.0003, help='discriminator lr')
+
 args = parser.parse_args()
 parser = ConfigParser()
 parser.read('config.ini')
@@ -46,6 +48,7 @@ demonstrations_location_args = Dict(parser,'demonstrations_location',True)
 agent_args = Dict(parser,args.agent)
 discriminator_args = Dict(parser,args.discriminator)
 
+discriminator_args['lr']=args.lr
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if args.tensorboard:
     from torch.utils.tensorboard import SummaryWriter
@@ -81,7 +84,7 @@ if device == 'cuda':
     
 import shutil, glob
 
-shutil.copyfile('config.ini', f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_{timestr}/config.ini')
+shutil.copyfile('config.ini', f'./runs/{args.agent}_{args.discriminator}_T{args.transformer}_lr{discriminator_args['lr']}_{timestr}/config.ini')
 state_rms = RunningMeanStd(state_dim)
 
 score_lst = []
