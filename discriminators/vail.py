@@ -41,13 +41,19 @@ class VAIL(Discriminator):
         return torch.mean(-logvar+(torch.square(mu)+torch.square(torch.exp(logvar))-1.)/2.)
     
     def train_network(self,writer,n_epi,agent_s,agent_a,expert_s,expert_a):
+        print()
         for i in range(self.args.epoch):
-            expert_cat = torch.cat((torch.tensor(expert_s),torch.tensor(expert_a)),-1)
+            expert_cat = torch.cat((torch.tensor(expert_s),torch.tensor(expert_a)),-1).unsqueeze(0)
+            print(expert_cat.size())
             expert_preds,expert_mu,expert_std = self.forward(expert_cat.float().to(self.device),get_dist = True)
-            expert_loss = self.criterion(expert_preds,torch.ones(expert_preds.shape[0],1).to(self.device))
+            expert_preds,expert_mu,expert_std = expert_preds.squeeze(0),expert_mu.squeeze(0),expert_std.squeeze(0)
+            
+            expert_loss = self.criterion(expert_preds ,torch.ones(expert_preds.shape[0],1).to(self.device))
 
-            agent_cat = torch.cat((agent_s,agent_a),-1)
+            agent_cat = torch.cat((agent_s,agent_a),-1).unsqueeze(0)
             agent_preds,agent_mu,agent_std = self.forward(agent_cat.float().to(self.device),get_dist = True)
+            
+            agent_preds,agent_mu,agent_std =  agent_preds.squeeze(0), agent_mu.squeeze(0), agent_std.squeeze(0)
             agent_loss = self.criterion(agent_preds,torch.zeros(agent_preds.shape[0],1).to(self.device))
             
             expert_bottleneck_loss = self.get_latent_kl_div(expert_mu,expert_std)
