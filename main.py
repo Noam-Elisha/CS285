@@ -88,7 +88,6 @@ score_lst = []
 discriminator_score_lst = []
 score = 0.0
 discriminator_score = 0
-stoppp
 if agent_args.on_policy == True:
     state_lst = []
     state_ = (env.reset())
