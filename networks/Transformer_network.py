@@ -24,13 +24,13 @@ class VDB_transformer(nn.Module):
         # self.ln1 = nn.LayerNorm(input_dim)
 
     def get_z(self,x):
-        x_encoded = nn.relu(self.encoder_input_layer(x)) 
+        x_encoded = nn.ReLU()(self.encoder_input_layer(x)) 
         
         # Pass through the positional encoding layer
         x = self.pos_encod(x_encoded)
         x = self.attention(x)
         # x = self.ln1(x)
-        x = torch.relu(self.fc1(x))
+        x = nn.ReLU()(self.fc1(x))
         # x = torch.relu(self.fc2(x))
         mu = self.mu(x)
         sigma = self.sigma(x)
